@@ -12,10 +12,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pet, Pets, ChecklistState } from "../lib/storage";
 import { useActivePet } from "../lib/activePet";
 import { generateChecklist, effectiveStatus } from "../lib/checklist";
+import { weeklyContentFor } from "../lib/weeklyFreshness";
 import { Pawgress, todayKey } from "../lib/pawgress";
 import { track } from "../lib/analytics";
 import { tapMedium, tapLight, notifySuccess } from "../lib/haptics";
 import PawgressPaw from "../components/PawgressPaw";
+import WeeklyFocusCard from "../components/WeeklyFocusCard";
 
 const WEEKDAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 import ActivePetTitle from "../components/ActivePetTitle";
@@ -29,6 +31,7 @@ export default function ChecklistScreen() {
   const [pet, setPet] = useState(null);
   const [pets, setPets] = useState([]);
   const [items, setItems] = useState([]);
+  const [weekContent, setWeekContent] = useState(null);
   const [state, setState] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [switcherVisible, setSwitcherVisible] = useState(false);
@@ -61,7 +64,16 @@ export default function ChecklistScreen() {
     if (gen !== loadGenRef.current) return;
     setPet(p);
     setPets(all);
-    setItems(generateChecklist(p));
+    // Weekly freshness layer — a rotated focus/tip card + two fresh
+    // spotlight tasks merged on top of the (stable, recurring) core
+    // checklist. See lib/weeklyFreshness.js.
+    const freshness = weeklyContentFor(p);
+    setWeekContent(freshness);
+    setItems([...freshness.spotlight, ...generateChecklist(p)]);
+    track("checklist_week_focus", {
+      week_index: freshness.weekIndex,
+      theme_id: freshness.theme?.id || null,
+    });
     const nextState = await ChecklistState.get(p?.id);
     if (gen !== loadGenRef.current) return;
     setState(nextState);
@@ -192,6 +204,8 @@ export default function ChecklistScreen() {
           </Text>
         </TouchableOpacity>
       )}
+
+      {weekContent && <WeeklyFocusCard content={weekContent} />}
 
       <View style={s.progress}>
         <Text style={s.progressLabel}>This week</Text>
