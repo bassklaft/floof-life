@@ -282,24 +282,23 @@ export default function HomeScreen({ navigation, onShowFloofFan }) {
     ? `${MOOD_SLOT_LABELS[currentMoodSlot]} checked in${lastMoodEmoji ? ` · ${lastMoodEmoji}` : ""} — tap to add tonight's reading or look back`
     : `Take a beat — log how ${pet.name} is feeling this ${MOOD_SLOT_LABELS[currentMoodSlot].toLowerCase()}`;
 
-  // v1.3 order (below Emergency): Assistant, Floof Trackers, Training,
-  // Risk, Trip, Vets, Recalls, Age, My Floofs. Health/Tummy/Mood are
-  // consolidated into the Floof Trackers hub; Diet & Care folded into
-  // Tummy. Toxic Foods & Plants kept appended (not in Max's stated
-  // order — flagged for placement) so the safety reference isn't lost.
+  // Home Quick Access order (below Emergency), per Max 2026-05-21:
+  // Assistant, Floof Trackers, Training, Toxic Foods & Plants, Risk,
+  // Trip Planner, Vets, Recalls, Age Calculator, My Floofs.
+  // Health/Tummy/Mood live in the Floof Trackers hub; Diet & Care is
+  // folded into Tummy.
   const trackerBadge = overdueCount > 0 ? overdueCount : null;
   const cards = [
     { key: "assistant",title: "Floof Assistant",      subtitle: `Chat about ${pet.name} — mood, tummy, breed, training. Not a vet.`, icon: "chat-question-outline", tint: theme.accent, onPress: () => navigation.navigate("FloofAssistant", { petId: pet.id }) },
     { key: "trackers", title: "Floof Trackers",       subtitle: "Health, Tummy & Mood — all in one place", icon: "heart-pulse", tint: theme.accent, onPress: () => navigation.navigate("FloofTrackers"), badge: trackerBadge },
     { key: "training", title: "Training Exercises",   subtitle: "Behavioral, physical, mental — and how often",     icon: "school",         tint: "#7A4F0A",    onPress: () => navigation.navigate("Training") },
+    { key: "toxic",    title: "Toxic Foods & Plants", subtitle: "Quick reference — what to keep away",             icon: "leaf",           tint: theme.green,  onPress: () => navigation.navigate("Toxic") },
     { key: "risk",     title: "Risk Map",             subtitle: "Hazards near you · breed-specific risks · rules of thumb", icon: "map-marker-alert", tint: "#9C2A0F", onPress: () => navigation.navigate("Risk") },
     { key: "trip",     title: "Trip Planner",         subtitle: "Packing, transit safety, tick prep",                icon: "bag-suitcase",   tint: "#3F5A30",    onPress: () => navigation.navigate("Trip") },
     { key: "vets",     title: "Vets Near Me",         subtitle: "Apple or Google Maps — your choice",              icon: "hospital-marker", tint: "#3F8E5C",   onPress: openVetsNearMe },
     { key: "recalls",  title: "Recalls & Class Actions", subtitle: "Active FDA investigations & owner concerns",  icon: "alert-octagon",  tint: "#C04A2C",    onPress: () => navigation.navigate("Recalls") },
     { key: "age",      title: "Age Calculator",       subtitle: `${pet.name}'s human-equivalent age — multi-factor, not "1 yr = 7"`, icon: "calendar-heart", tint: "#7A4F0A", onPress: () => navigation.navigate("DogAge") },
     { key: "pets",     title: "My Floofs",            subtitle: `${pet.name} · ${breedDisplay}`,    icon: "paw",            tint: theme.accent, onPress: () => navigation.navigate("Main", { screen: "YourPets" }) },
-    // Not in Max's stated order — appended so the safety reference stays reachable.
-    { key: "toxic",    title: "Toxic Foods & Plants", subtitle: "Quick reference — what to keep away",             icon: "leaf",           tint: theme.green,  onPress: () => navigation.navigate("Toxic") },
   ];
 
   return (
