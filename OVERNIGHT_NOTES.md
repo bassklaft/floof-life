@@ -4,6 +4,18 @@ This file is the running log. **Read the v1.3 STATE section directly below first
 
 ---
 
+# 🎨 v1.3 UX PASS — assistant + home IA + vet (2026-05-21, uncommitted→committed, NOT yet built)
+
+Batch after the #49 build. All committed on `v1.2-work`, **not in any build yet** (next build #50). Build #49's icon was still V1 — fixed here too (`3f320bc`, separate).
+
+- **Floof Assistant — featured + persistent + memory.** New always-on FAB (`src/components/FloofAssistantFab.js`) pinned right-edge vertical-center on every screen except the chat + onboarding forms (App.js tracks `currentRoute`; hidden if AI proxy unconfigured). Per-pet chat memory persisted in AsyncStorage (`aiAssistant.js` load/save/clearChatHistory; `FloofAssistantScreen` restores per floof + Clear-chat control). Featured in the post-onboarding GuidedTour (new step).
+- **Home IA.** Health/Tummy/Mood consolidated into one **Floof Trackers** card → `TrackersHubScreen` (labeled circular bubbles). Diet & Care folded into Tummy (entry card in `TummyTrackerScreen` → DietScreen). Cards reordered per Max's spec; Trip Planning→**Trip Planner**. **Toxic Foods & Plants was NOT in Max's stated order — kept appended as last card, flagged for his placement decision.**
+- **Vet per pet.** `pet.vet = { name, address }` captured on the My Floofs profile (`VetRow` in YourPetsScreen), one-tap opens Apple/Google Maps search (free link, no Places API — `maps.js` `openMapsForVet`). Included in the Floof Assistant pet context. Vet decision: **free Maps link** (Max chose over billable Places API).
+- Verified: `expo export -p ios` produces a clean Hermes bundle (all imports resolve).
+- **Open items for Max:** (1) Toxic card placement; (2) can't produce live screenshots here — review in Expo Go/sim or on build #50.
+
+---
+
 # 🚀 v1.3 STATE — backend + accounts + privacy (2026-05-21)
 
 **Theme:** soft-prompt cloud accounts + cloud sync (backup) + privacy compliance, shipped to pass Apple review. Core app stays fully local; accounts are optional and benefit-led.
