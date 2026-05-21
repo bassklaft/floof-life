@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FloofLife iOS app ICON source — square, full-bleed, WHITE background,
+  no rounded corners (iOS masks the corners itself). Same canonical paw
+  + green-check geometry as assets/logo-paw-check.svg, recentered into a
+  1024x1024 square.
+
+  Render (matches the project's existing qlmanage pipeline):
+    qlmanage -t -s 1024 -o . icon-source.svg
+  then flatten alpha onto white before using as the app icon (iOS
+  rejects icons with an alpha channel).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Full-bleed white background (no rounding). -->
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+
+  <!-- Paw + check artwork from logo-paw-check.svg (content bbox center
+       ~ (160,148) in the original 320x280 space), scaled up and centered
+       so it fills ~66% of the square with comfortable icon margins. -->
+  <g transform="translate(512 512) scale(3.7) translate(-160 -148)">
+    <!-- Paw — 24x24 native geometry scaled into a 200x200 region. -->
+    <g transform="translate(60 40) scale(8.333)" fill="#C04A2C">
+      <ellipse cx="9.2"  cy="6"   rx="2.3" ry="3.4" transform="rotate(-6 9.2 6)"/>
+      <ellipse cx="14.8" cy="6"   rx="2.3" ry="3.4" transform="rotate(6 14.8 6)"/>
+      <ellipse cx="4.5"  cy="9.5" rx="2.0" ry="2.9" transform="rotate(-25 4.5 9.5)"/>
+      <ellipse cx="19.5" cy="9.5" rx="2.0" ry="2.9" transform="rotate(25 19.5 9.5)"/>
+      <path d="M 12 11.5 C 9.2 11.5 6.8 13.2 5.6 15.6 C 4.6 17.6 4.8 19.8 6 21.2 C 7.2 22.5 9.4 22.8 11 22.4 C 11.6 22.25 12.4 22.25 13 22.4 C 14.6 22.8 16.8 22.5 18 21.2 C 19.2 19.8 19.4 17.6 18.4 15.6 C 17.2 13.2 14.8 11.5 12 11.5 Z"/>
+    </g>
+    <!-- Green check badge with a white ring (separates it from the paw). -->
+    <g transform="translate(216 207)">
+      <circle r="28" fill="#FFFFFF"/>
+      <circle r="22.4" fill="#3F8E5C"/>
+      <path d="M -10.5 0 L -2.1 8.4 L 12.6 -8.4" stroke="#fff" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+  </g>
+</svg>
