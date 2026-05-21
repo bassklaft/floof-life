@@ -91,11 +91,10 @@ export default function AccountSoftPrompt({ onboarded, navRef }) {
       <View style={s.backdrop}>
         <View style={s.card}>
           <Text style={s.emoji}>🐾</Text>
-          <Text style={s.h1}>Keep {petName}'s data safe</Text>
+          <Text style={s.h1}>Back up {petName}'s data</Text>
           <Text style={s.body}>
-            Back up {petName}'s health records and photos to your own private
-            account — so they're safe even if something happens to your phone.
-            Multi-device sync and more cloud features are rolling out soon.
+            Create a free account to save a private cloud backup of {petName}'s
+            health records and photos. Multi-device restore is coming soon.
           </Text>
 
           <TouchableOpacity style={s.primary} onPress={tapCreate}>
@@ -107,7 +106,7 @@ export default function AccountSoftPrompt({ onboarded, navRef }) {
           </TouchableOpacity>
 
           <Text style={s.fineprint}>
-            Your floofs stay safe on this device either way.
+            Your floofs stay on this device either way.
           </Text>
         </View>
       </View>

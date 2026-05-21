@@ -75,8 +75,9 @@ export default function AccountScreen({ navigation }) {
         >
           <Text style={[s.body, { fontWeight: "700", color: theme.accent }]}>Back up my floofs</Text>
           <Text style={[s.sub, { marginTop: 4 }]}>
-            Upload your pets, photos, and logs to your account so they're safe
-            if you ever lose your phone. Your local copy stays on this device.
+            Save a private cloud backup of your pets, photos, and logs. Your
+            local copy always stays on this device. Multi-device restore is
+            coming soon.
           </Text>
         </TouchableOpacity>
 
@@ -154,8 +155,8 @@ export default function AccountScreen({ navigation }) {
     >
       <Text style={s.h1}>{mode === "signup" ? "Make a FloofLife account" : "Sign in"}</Text>
       <Text style={[s.body, { marginTop: 6, color: theme.muted }]}>
-        Back up your floofs so they're safe if you ever lose your phone.
-        Your data stays on this device too — never deleted by signing in.
+        Save a private cloud backup of your floofs. Your data stays on this
+        device too — never deleted by signing in.
       </Text>
 
       {Platform.OS === "ios" && AppleAuthentication.AppleAuthenticationButton ? (
