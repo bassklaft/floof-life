@@ -2,7 +2,7 @@
 // avatar (tap to set/change photo), name, breed badge, breed summary
 // + insider tips. Tap "Add another pet" to onboard a second.
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, Linking, Alert, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Image, RefreshControl, Linking, Alert, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
 
 // Enable LayoutAnimation on Android (iOS has it on by default).
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -20,6 +20,7 @@ import { findType, statusFor, daysUntilDue } from "../lib/healthRecordTypes";
 import { CONDITION_BY_ID } from "../data/conditions";
 import { breedFacts, breedDisplayName, breedAdjective, breedEmoji } from "../data/breeds";
 import { LIFESTYLE_QUESTIONS, LIFESTYLE_DISPLAY } from "../data/lifestyleQuestions";
+import { openMapsForVet } from "../lib/maps";
 import { track } from "../lib/analytics";
 import { tapLight, tapMedium } from "../lib/haptics";
 import PhotoManagerSheet from "../components/PhotoManagerSheet";
@@ -65,6 +66,89 @@ function HealthTrackerRow({ pet, navigation }) {
       )}
       <MaterialCommunityIcons name="chevron-right" size={20} color={theme.muted} />
     </TouchableOpacity>
+  );
+}
+
+// Your Vet row — capture + store each pet's vet (free text), then open
+// it in Maps with one tap. Stored on pet.vet = { name, address }. When
+// the app suggests a vet visit (and in the Floof Assistant context) we
+// can point the owner straight at their own vet. Uses a free Maps
+// search link — no Places API, no billing.
+function VetRow({ pet, navigation, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(pet.vet?.name || "");
+  const [address, setAddress] = useState(pet.vet?.address || "");
+  const hasVet = !!(pet.vet?.name || pet.vet?.address);
+
+  function openEditor() {
+    tapLight();
+    setName(pet.vet?.name || "");
+    setAddress(pet.vet?.address || "");
+    setEditing(true);
+  }
+
+  async function save() {
+    const next = { name: name.trim(), address: address.trim() };
+    await Pets.update(pet.id, { vet: (next.name || next.address) ? next : null });
+    setEditing(false);
+    track("vet_saved", { pet_id: pet.id, has_address: !!next.address });
+    onChanged && onChanged();
+  }
+
+  const subtitle = hasVet
+    ? [pet.vet?.name, pet.vet?.address].filter(Boolean).join(" · ")
+    : "Add your vet — we'll map it when it's time for a visit";
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => { tapLight(); hasVet ? openMapsForVet(pet.vet) : openEditor(); }}
+        style={s.healthRow}
+        activeOpacity={0.7}
+      >
+        <View style={[s.healthRowIcon, { backgroundColor: theme.green + "1f" }]}>
+          <MaterialCommunityIcons name="hospital-marker" size={18} color={theme.green} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.healthRowTitle}>Your Vet</Text>
+          <Text style={s.healthRowSubtitle} numberOfLines={2}>{subtitle}</Text>
+        </View>
+        <TouchableOpacity onPress={openEditor} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <MaterialCommunityIcons name={hasVet ? "pencil" : "plus-circle-outline"} size={20} color={theme.muted} />
+        </TouchableOpacity>
+      </TouchableOpacity>
+
+      <Modal visible={editing} transparent animationType="fade" onRequestClose={() => setEditing(false)}>
+        <View style={s.vetBackdrop}>
+          <View style={s.vetCard}>
+            <Text style={s.vetTitle}>{pet.name}'s vet</Text>
+            <Text style={s.vetSub}>So we can pull up directions, phone, and hours when a visit's due.</Text>
+            <TextInput
+              style={s.vetInput}
+              placeholder="Vet / clinic name"
+              placeholderTextColor={theme.muted}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={s.vetInput}
+              placeholder="Address or city (optional)"
+              placeholderTextColor={theme.muted}
+              value={address}
+              onChangeText={setAddress}
+              autoCapitalize="words"
+            />
+            <TouchableOpacity style={s.vetSave} onPress={save}>
+              <Text style={s.vetSaveText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.vetCancel} onPress={() => setEditing(false)}>
+              <Text style={s.vetCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -427,6 +511,7 @@ export default function YourPetsScreen() {
 
             <HealthTrackerRow pet={pet} navigation={navigation} />
             <ConditionsRow pet={pet} navigation={navigation} />
+            <VetRow pet={pet} navigation={navigation} onChanged={load} />
 
             {/* Lifestyle card — collapsed by default. Shows answered
                 questions if pet.lifestyle has any entries; shows a
@@ -802,6 +887,15 @@ const s = StyleSheet.create({
   healthRowSubtitle:{ fontSize: 11, color: theme.muted, marginTop: 2 },
   healthRowBadge:{ backgroundColor: theme.red, minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", marginRight: 4 },
   healthRowBadgeText:{ color: "#fff", fontSize: 11, fontWeight: "800" },
+  vetBackdrop:   { flex: 1, backgroundColor: "rgba(20,14,9,0.55)", justifyContent: "center", padding: 24 },
+  vetCard:       { backgroundColor: theme.bg, borderRadius: 18, padding: 20, borderWidth: 1, borderColor: theme.line },
+  vetTitle:      { fontSize: 18, fontWeight: "800", color: theme.fg, textTransform: "capitalize" },
+  vetSub:        { fontSize: 12, color: theme.muted, lineHeight: 17, marginTop: 4, marginBottom: 14 },
+  vetInput:      { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: theme.fg, marginBottom: 10 },
+  vetSave:       { backgroundColor: theme.accent, borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 4 },
+  vetSaveText:   { color: "#fff", fontWeight: "800", fontSize: 15 },
+  vetCancel:     { paddingVertical: 11, alignItems: "center" },
+  vetCancelText: { color: theme.muted, fontWeight: "600", fontSize: 14 },
   disclaimer:    { marginTop: 16, padding: 14, borderRadius: 10, backgroundColor: theme.accentSoft },
   disclaimerText:{ fontSize: 11, color: theme.fg, lineHeight: 17 },
 });

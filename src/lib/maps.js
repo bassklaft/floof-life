@@ -17,3 +17,19 @@ export function openMapsSearch(query) {
     ]
   );
 }
+
+// Open a specific saved vet in Maps. Builds the search query from the
+// vet's name + address (free text the owner entered). Uses a Google/
+// Apple Maps SEARCH URL — a public link, no Places API, no key, no
+// billing (per docs/security-non-negotiables.md, public maps links are
+// fine client-direct). Falls back to a generic "veterinarian near me"
+// search if no vet is saved.
+export function openMapsForVet(vet) {
+  const name = (vet?.name || "").trim();
+  const address = (vet?.address || "").trim();
+  if (!name && !address) {
+    openMapsSearch("veterinarian");
+    return;
+  }
+  openMapsSearch([name, address].filter(Boolean).join(" "));
+}

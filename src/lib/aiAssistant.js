@@ -147,6 +147,15 @@ export async function buildPetContext(petId) {
     lines.push(...lifestyleLines);
   }
 
+  // Vet on file — free text the owner saved. Let the assistant refer to
+  // the vet by name when recommending a visit; the app can open it in
+  // Maps for the owner.
+  if (pet.vet && (pet.vet.name || pet.vet.address)) {
+    lines.push("");
+    lines.push(`Vet on file: ${[pet.vet.name, pet.vet.address].filter(Boolean).join(", ")}`);
+    lines.push("(If you suggest a vet visit, you may refer to this vet by name — the owner can open it in Maps from the app.)");
+  }
+
   // Health records — vaccines, preventatives, wellness. Most recent
   // first. Mark anything overdue.
   const records = Array.isArray(pet.healthRecords) ? pet.healthRecords : [];
