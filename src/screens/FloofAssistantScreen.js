@@ -24,7 +24,7 @@ import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/nativ
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Pets, Pet } from "../lib/storage";
 import { useActivePet } from "../lib/activePet";
-import { askFloofAssistant, buildPetContext, isConfigured, FloofAssistantError } from "../lib/aiAssistant";
+import { askFloofAssistant, buildPetContext, isConfigured, FloofAssistantError, loadChatHistory, saveChatHistory, clearChatHistory } from "../lib/aiAssistant";
 import { tapLight, tapMedium } from "../lib/haptics";
 import { track } from "../lib/analytics";
 import { theme } from "../theme";
@@ -74,21 +74,32 @@ export default function FloofAssistantScreen() {
   useEffect(() => { load(); }, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // Re-build pet context whenever the selected floof changes. Reset
-  // the conversation too — context-mismatched turns would confuse the
-  // model (e.g. user asked about Falafel, then switched to Bella).
+  // Re-build pet context AND restore that floof's saved chat history
+  // whenever the selected floof changes. History is per-pet so the
+  // conversation persists across opens, and switching floofs swaps to
+  // the right thread (never mixes one pet's turns into another's).
   useEffect(() => {
     if (!selectedPetId) return;
     let cancelled = false;
     (async () => {
-      const ctx = await buildPetContext(selectedPetId);
+      const [ctx, history] = await Promise.all([
+        buildPetContext(selectedPetId),
+        loadChatHistory(selectedPetId),
+      ]);
       if (cancelled) return;
       setPetContext(ctx);
-      setTurns([]);
+      setTurns(history);
       setError(null);
     })();
     return () => { cancelled = true; };
   }, [selectedPetId]);
+
+  function clearChat() {
+    tapLight();
+    clearChatHistory(selectedPetId);
+    setTurns([]);
+    setError(null);
+  }
 
   const selectedPet = useMemo(
     () => pets.find((p) => p.id === selectedPetId) || null,
@@ -107,6 +118,9 @@ export default function FloofAssistantScreen() {
     const userTurn = { role: "user", content: trimmed, id: `u${Date.now()}` };
     const nextTurns = [...turns, userTurn].slice(-MAX_TURNS);
     setTurns(nextTurns);
+    // Persist the question immediately so it survives even if the
+    // response errors or the user backs out mid-request.
+    saveChatHistory(selectedPetId, nextTurns);
     setInput("");
     setBusy(true);
     try {
@@ -117,7 +131,9 @@ export default function FloofAssistantScreen() {
       });
       const assistantText = (response?.text || "").trim();
       if (assistantText) {
-        setTurns((prev) => [...prev, { role: "assistant", content: assistantText, id: `a${Date.now()}` }].slice(-MAX_TURNS));
+        const withReply = [...nextTurns, { role: "assistant", content: assistantText, id: `a${Date.now()}` }].slice(-MAX_TURNS);
+        setTurns(withReply);
+        saveChatHistory(selectedPetId, withReply);
       }
       track("ai_assistant_turn", {
         pet_id: selectedPetId,
@@ -214,6 +230,15 @@ export default function FloofAssistantScreen() {
           </View>
         )}
 
+        {turns.length > 0 && (
+          <View style={s.clearRow}>
+            <Text style={s.memoryNote}>Saved for {selectedPet.name}</Text>
+            <TouchableOpacity onPress={clearChat} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={s.clearText}>Clear chat</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {turns.map((t) => (
           <View key={t.id} style={[s.bubbleRow, t.role === "user" ? s.bubbleRowUser : s.bubbleRowAssistant]}>
             <View style={[s.bubble, t.role === "user" ? s.bubbleUser : s.bubbleAssistant]}>
@@ -286,6 +311,9 @@ const s = StyleSheet.create({
   petChipActive:   { backgroundColor: theme.accent, borderColor: theme.accent },
   petChipText:     { fontSize: 13, fontWeight: "700", color: theme.fg, textTransform: "capitalize" },
   petChipTextActive: { color: "#fff" },
+  clearRow:        { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  memoryNote:      { fontSize: 11, color: theme.muted, fontStyle: "italic" },
+  clearText:       { fontSize: 12, color: theme.accent, fontWeight: "700" },
   presetsWrap:     { marginBottom: 14 },
   presetsHd:       { fontSize: 11, fontWeight: "800", color: theme.muted, letterSpacing: 1.2, marginBottom: 8 },
   presetsGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 8 },

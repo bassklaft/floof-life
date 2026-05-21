@@ -47,6 +47,7 @@ import TummyTrackerScreen from "./src/screens/TummyTrackerScreen";
 import LogStoolScreen from "./src/screens/LogStoolScreen";
 import LogDietScreen from "./src/screens/LogDietScreen";
 import MoodTrackerScreen from "./src/screens/MoodTrackerScreen";
+import TrackersHubScreen from "./src/screens/TrackersHubScreen";
 import ExportFloofDataScreen from "./src/screens/ExportFloofDataScreen";
 import FloofAssistantScreen from "./src/screens/FloofAssistantScreen";
 import ConditionsScreen from "./src/screens/ConditionsScreen";
@@ -57,7 +58,12 @@ import { AuthProvider } from "./src/lib/auth";
 import AccountScreen from "./src/screens/AccountScreen";
 import CloudSyncStatusScreen from "./src/screens/CloudSyncStatusScreen";
 import AccountSoftPrompt from "./src/components/AccountSoftPrompt";
+import FloofAssistantFab from "./src/components/FloofAssistantFab";
 import { recordSession } from "./src/lib/accountPrompt";
+
+// Routes where the persistent assistant FAB should NOT appear: the
+// chat itself, and the onboarding / add / edit pet forms.
+const FAB_HIDDEN_ROUTES = new Set(["FloofAssistant", "Onboarding", "AddPet", "EditPet"]);
 import ChurnFeedbackGate from "./src/components/ChurnFeedbackGate";
 import { theme } from "./src/theme";
 
@@ -181,6 +187,7 @@ export default function App() {
   const [tutorialVisible, setTutorialVisible] = useState(false);
   const navRef = useRef(null);
   const lastRouteRef = useRef(null);
+  const [currentRoute, setCurrentRoute] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -357,11 +364,13 @@ export default function App() {
           const route = navRef.current?.getCurrentRoute?.();
           if (route?.name) {
             lastRouteRef.current = route.name;
+            setCurrentRoute(route.name);
             trackScreen(route.name);
           }
         }}
         onStateChange={() => {
           const route = navRef.current?.getCurrentRoute?.();
+          if (route?.name) setCurrentRoute(route.name);
           if (route?.name && route.name !== lastRouteRef.current) {
             lastRouteRef.current = route.name;
             trackScreen(route.name);
@@ -424,6 +433,7 @@ export default function App() {
               <RootStack.Screen name="LogStool"        component={LogStoolScreen}        options={{ ...pushScreenOptions, presentation: "modal", title: "Log a poop" }} />
               <RootStack.Screen name="LogDiet"         component={LogDietScreen}         options={{ ...pushScreenOptions, presentation: "modal", title: "Log a meal" }} />
               <RootStack.Screen name="MoodTracker"     component={MoodTrackerScreen}     options={{ ...pushScreenOptions, title: "Mood" }} />
+              <RootStack.Screen name="FloofTrackers"   component={TrackersHubScreen}     options={{ ...pushScreenOptions, title: "Floof Trackers" }} />
               <RootStack.Screen name="ExportFloofData" component={ExportFloofDataScreen} options={{ ...pushScreenOptions, presentation: "modal", title: "Export Floof Data" }} />
               <RootStack.Screen name="FloofAssistant"  component={FloofAssistantScreen}  options={{ ...pushScreenOptions, title: "Ask the Floof Assistant" }} />
               <RootStack.Screen name="Conditions"      component={ConditionsScreen}      options={{ ...pushScreenOptions, title: "Health Conditions" }} />
@@ -477,6 +487,13 @@ export default function App() {
           circle to switch active pet. Rendered at App root so it
           overlays any tab. Single-pet households never see it
           (showLongPressSwitcher early-returns). */}
+      {/* Persistent Floof Assistant launcher — right edge, vertically
+          centered, on every screen except the chat itself + onboarding
+          forms. Stays dormant if the AI proxy isn't configured. */}
+      <FloofAssistantFab
+        visible={onboarded && !FAB_HIDDEN_ROUTES.has(currentRoute)}
+        navRef={navRef}
+      />
       <FanInsetSentinel onBottom={(b) => { safeAreaBottomRef.current = b; }} />
       <FloofFanOverlay
         visible={longPressSwitcherVisible}

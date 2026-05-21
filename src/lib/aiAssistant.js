@@ -17,6 +17,7 @@
 // would matter to a vet reading a summary.
 
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Pets } from "./storage";
 import { StoolLog, DietLog, BRISTOL_LABELS, STOOL_COLOR_LABELS, DIET_MEAL_TYPE_LABELS } from "./tummy";
 import { findType } from "./healthRecordTypes";
@@ -41,6 +42,40 @@ function resolveProxyUrl() {
 
 export const AI_PROXY_URL = resolveProxyUrl();
 export const isConfigured = () => !!AI_PROXY_URL;
+
+// ────────────────────────────────────────────────────────────────────
+// Chat memory — the assistant's conversation history is persisted
+// per-pet in AsyncStorage so it survives leaving + reopening the chat.
+// Stored locally only (like all pet data); never sent anywhere except
+// the bounded turns included in each request. Capped so storage stays
+// small and the next session reloads quickly.
+// ────────────────────────────────────────────────────────────────────
+const CHAT_HISTORY_CAP = 40;
+const chatKey = (petId) => `pawrent_ai_chat_${petId}`;
+
+export async function loadChatHistory(petId) {
+  if (!petId) return [];
+  try {
+    const raw = await AsyncStorage.getItem(chatKey(petId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveChatHistory(petId, turns) {
+  if (!petId) return;
+  try {
+    const bounded = (Array.isArray(turns) ? turns : []).slice(-CHAT_HISTORY_CAP);
+    await AsyncStorage.setItem(chatKey(petId), JSON.stringify(bounded));
+  } catch { /* swallow — history is best-effort */ }
+}
+
+export async function clearChatHistory(petId) {
+  if (!petId) return;
+  try { await AsyncStorage.removeItem(chatKey(petId)); } catch { /* swallow */ }
+}
 
 const titleCase = (s) => (s || "").split(" ").map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
 
