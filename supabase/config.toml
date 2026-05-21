@@ -1,0 +1,28 @@
+# Supabase project config.
+#
+# `project_id` is a LOCAL identifier only — the remote project is
+# selected with `supabase link --project-ref <ref>`. If a newer
+# Supabase CLI rejects this minimal file, run `supabase init` to
+# regenerate the full config (the [functions.*] blocks below are the
+# only non-default settings FloofLife needs).
+project_id = "flooflife"
+
+# ai-floof-assistant and churn-feedback are public endpoints: they do
+# their own IP rate-limiting + validation and aren't behind Supabase
+# Auth, so JWT verification is disabled. The app calls them with no
+# auth header.
+[functions.ai-floof-assistant]
+verify_jwt = false
+
+[functions.churn-feedback]
+verify_jwt = false
+
+# account-delete and sync-upload-url REQUIRE the user's JWT — they
+# need auth.uid() to know which user is being deleted / which path is
+# allowed to mint. They also do their own IP rate-limit (Rule 4) on
+# top of the JWT check, so abuse can't burn JWT-verification CPU.
+[functions.account-delete]
+verify_jwt = true
+
+[functions.sync-upload-url]
+verify_jwt = true
