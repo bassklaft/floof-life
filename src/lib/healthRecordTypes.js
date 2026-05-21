@@ -169,6 +169,21 @@ export const HEALTH_RECORD_TYPES = [
     durationOptions: [12],
   },
   {
+    // FIV / FeLV combo test (the in-clinic SNAP test). Logged as a
+    // WELLNESS test, not a vaccine: the FIV vaccine (Fel-O-Vax FIV)
+    // was discontinued in North America ~2016 and globally since, so
+    // there is no FIV shot to track. Testing IS current practice —
+    // AAFP recommends it at adoption / for every new cat, and annual
+    // retesting for cats at ongoing risk (outdoor, multi-cat homes
+    // with unknown-status cats, after a bite wound).
+    id: "fiv-felv-test",
+    label: "FIV / FeLV Test",
+    category: "wellness",
+    speciesAvailable: "cat",
+    defaultDurationMonths: 12,
+    durationOptions: [12, 24],
+  },
+  {
     id: "fecal-exam",
     label: "Fecal Exam",
     category: "wellness",

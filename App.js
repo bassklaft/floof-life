@@ -46,9 +46,19 @@ import PawgressScreen from "./src/screens/PawgressScreen";
 import TummyTrackerScreen from "./src/screens/TummyTrackerScreen";
 import LogStoolScreen from "./src/screens/LogStoolScreen";
 import LogDietScreen from "./src/screens/LogDietScreen";
+import MoodTrackerScreen from "./src/screens/MoodTrackerScreen";
+import ExportFloofDataScreen from "./src/screens/ExportFloofDataScreen";
+import FloofAssistantScreen from "./src/screens/FloofAssistantScreen";
+import ConditionsScreen from "./src/screens/ConditionsScreen";
 import AboutScreen from "./src/screens/AboutScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import { PurchasesProvider } from "./src/lib/purchasesContext";
+import { AuthProvider } from "./src/lib/auth";
+import AccountScreen from "./src/screens/AccountScreen";
+import CloudSyncStatusScreen from "./src/screens/CloudSyncStatusScreen";
+import AccountSoftPrompt from "./src/components/AccountSoftPrompt";
+import { recordSession } from "./src/lib/accountPrompt";
+import ChurnFeedbackGate from "./src/components/ChurnFeedbackGate";
 import { theme } from "./src/theme";
 
 const RootStack = createNativeStackNavigator();
@@ -198,6 +208,9 @@ export default function App() {
 
   useEffect(() => { initAnalytics(); }, []);
   useEffect(() => { initHaptics(); }, []);
+  // Bump the cold-start session counter for the account soft-prompt.
+  // The 3rd session is itself a value moment (see lib/accountPrompt).
+  useEffect(() => { recordSession(); }, []);
 
   // Watch active-pet state — if the active id becomes null AND the
   // pets list is empty (e.g., the user just deleted their last
@@ -336,6 +349,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <AuthProvider>
       <PurchasesProvider>
       <NavigationContainer
         ref={navRef}
@@ -409,6 +423,10 @@ export default function App() {
               <RootStack.Screen name="TummyTracker"    component={TummyTrackerScreen}    options={{ ...pushScreenOptions, title: "Tummy Tracker" }} />
               <RootStack.Screen name="LogStool"        component={LogStoolScreen}        options={{ ...pushScreenOptions, presentation: "modal", title: "Log a poop" }} />
               <RootStack.Screen name="LogDiet"         component={LogDietScreen}         options={{ ...pushScreenOptions, presentation: "modal", title: "Log a meal" }} />
+              <RootStack.Screen name="MoodTracker"     component={MoodTrackerScreen}     options={{ ...pushScreenOptions, title: "Mood" }} />
+              <RootStack.Screen name="ExportFloofData" component={ExportFloofDataScreen} options={{ ...pushScreenOptions, presentation: "modal", title: "Export Floof Data" }} />
+              <RootStack.Screen name="FloofAssistant"  component={FloofAssistantScreen}  options={{ ...pushScreenOptions, title: "Ask the Floof Assistant" }} />
+              <RootStack.Screen name="Conditions"      component={ConditionsScreen}      options={{ ...pushScreenOptions, title: "Health Conditions" }} />
               <RootStack.Screen name="About"    component={AboutScreen}    options={{ ...pushScreenOptions, title: "About FloofLife" }} />
               <RootStack.Screen name="AddPet"   options={{ ...pushScreenOptions, presentation: "modal", title: "Add a floof" }}>
                 {(props) => <OnboardingScreen {...props} addMode onDone={() => props.navigation.goBack()} />}
@@ -429,11 +447,31 @@ export default function App() {
                 component={SettingsScreen}
                 options={{ ...pushScreenOptions, presentation: "modal", title: "Settings" }}
               />
+              <RootStack.Screen
+                name="Account"
+                component={AccountScreen}
+                options={{ ...pushScreenOptions, presentation: "modal", title: "Account" }}
+              />
+              <RootStack.Screen
+                name="CloudSyncStatus"
+                component={CloudSyncStatusScreen}
+                options={{ ...pushScreenOptions, presentation: "modal", title: "Cloud Backup" }}
+              />
             </>
           )}
         </RootStack.Navigator>
       </NavigationContainer>
+      {/* Churn-feedback prompt — opens after a cancelled trial /
+          subscription, or the 2nd app open with no subscription.
+          Lives inside PurchasesProvider so it can read RevenueCat
+          state; stays dormant until the backend URL is configured. */}
+      <ChurnFeedbackGate onboarded={onboarded} />
+      {/* Soft-prompt for cloud accounts (v2.0). Skippable — encourages
+          but doesn't require sign-in. Stays dormant if Supabase env
+          vars are unset or the user has already dismissed it once. */}
+      <AccountSoftPrompt onboarded={onboarded} navRef={navRef} />
       </PurchasesProvider>
+      </AuthProvider>
       {/* Long-press-on-My-Floofs-tab fan-out overlay. Pet profile-photo
           circles fan in an arc from above the My Floofs tab; tap a
           circle to switch active pet. Rendered at App root so it

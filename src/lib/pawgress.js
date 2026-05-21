@@ -23,6 +23,7 @@
 // auth.uid() per the security doc.
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signalValueMoment } from "./accountPrompt";
 
 const KEY = "pawrent_pawgress_v1";
 
@@ -116,6 +117,9 @@ export const Pawgress = {
     petMap[dateKey] = day;
     all[petId] = petMap;
     await saveAll(all);
+    // Completing all 5 segments for a day is an account soft-prompt
+    // value moment (a "ring complete").
+    if (Pawgress.isAllFive(day)) signalValueMoment("pawgress");
     return day;
   },
 
@@ -129,6 +133,7 @@ export const Pawgress = {
     petMap[dateKey] = day;
     all[petId] = petMap;
     await saveAll(all);
+    if (Pawgress.isAllFive(day)) signalValueMoment("pawgress");
     return day;
   },
 

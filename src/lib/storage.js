@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { normalizePetBreeds } from "./petBreeds";
 import { normalizePetPhotos, migratePetPhotosArray } from "./petPhotos";
+import { signalValueMoment } from "./accountPrompt";
 
 // Re-export so existing import sites that pull `normalizePetPhotos`
 // from this module keep working.
@@ -81,6 +82,8 @@ export const Pets = {
     }));
     arr.push(withId);
     await this.setAll(arr);
+    // Adding a 2nd (or later) pet is an account soft-prompt value moment.
+    if (arr.length >= 2) signalValueMoment("second_pet");
     return withId;
   },
   async update(id, updates) {
@@ -313,6 +316,85 @@ export const ChecklistState = {
     return all[petId];
   },
 };
+
+// Mood log — per-pet array of mood entries. Same flat-on-pet-doc shape
+// as healthRecords so all per-pet data lives in one place for export.
+// Entry: { id, ts, moodId, slot ("morning"|"night"), dateKey, note? }.
+const newMoodId = () => "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+Object.assign(Pets, {
+  async listMoodLogs(petId) {
+    const arr = await this.list();
+    const pet = arr.find((p) => p.id === petId);
+    return Array.isArray(pet?.moodLogs) ? pet.moodLogs : [];
+  },
+  async addMoodLog(petId, entry) {
+    const arr = await this.list();
+    const idx = arr.findIndex((p) => p.id === petId);
+    if (idx < 0) return null;
+    const existing = Array.isArray(arr[idx].moodLogs) ? arr[idx].moodLogs : [];
+    const record = {
+      id: entry.id || newMoodId(),
+      ts: entry.ts || Date.now(),
+      moodId: entry.moodId,
+      slot: entry.slot || "morning",
+      dateKey: entry.dateKey,
+      note: entry.note || "",
+    };
+    arr[idx] = { ...arr[idx], moodLogs: [...existing, record] };
+    await this.setAll(arr);
+    return record;
+  },
+  async removeMoodLog(petId, recordId) {
+    const arr = await this.list();
+    const idx = arr.findIndex((p) => p.id === petId);
+    if (idx < 0) return false;
+    const records = Array.isArray(arr[idx].moodLogs) ? arr[idx].moodLogs : [];
+    arr[idx] = { ...arr[idx], moodLogs: records.filter((r) => r.id !== recordId) };
+    await this.setAll(arr);
+    return true;
+  },
+
+  // ─────────────── Health conditions (v2) ────────────────────────
+  // Per-pet array of diagnosed conditions the owner is tracking, e.g.
+  // FIV. Each entry references a guide in src/data/conditions.js by
+  // `conditionId`. Shape: { id, conditionId, diagnosedDate?, note?,
+  // addedAt }. Inline on the pet doc, same as healthRecords / moodLogs.
+  async listConditions(petId) {
+    const arr = await this.list();
+    const pet = arr.find((p) => p.id === petId);
+    return Array.isArray(pet?.conditions) ? pet.conditions : [];
+  },
+  async addCondition(petId, entry) {
+    const arr = await this.list();
+    const idx = arr.findIndex((p) => p.id === petId);
+    if (idx < 0) return null;
+    const existing = Array.isArray(arr[idx].conditions) ? arr[idx].conditions : [];
+    // One entry per conditionId — adding a condition already on file
+    // is a no-op (returns the existing record).
+    const already = existing.find((c) => c.conditionId === entry.conditionId);
+    if (already) return already;
+    const record = {
+      id: entry.id || ("c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+      conditionId: entry.conditionId,
+      diagnosedDate: entry.diagnosedDate || null,
+      note: entry.note || "",
+      addedAt: entry.addedAt || Date.now(),
+    };
+    arr[idx] = { ...arr[idx], conditions: [...existing, record] };
+    await this.setAll(arr);
+    return record;
+  },
+  async removeCondition(petId, recordId) {
+    const arr = await this.list();
+    const idx = arr.findIndex((p) => p.id === petId);
+    if (idx < 0) return false;
+    const records = Array.isArray(arr[idx].conditions) ? arr[idx].conditions : [];
+    arr[idx] = { ...arr[idx], conditions: records.filter((r) => r.id !== recordId) };
+    await this.setAll(arr);
+    return true;
+  },
+});
 
 export const Observations = {
   async list() {

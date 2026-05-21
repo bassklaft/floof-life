@@ -24,6 +24,7 @@
 //   { id, brand, productName, lastUsedTs }
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signalValueMoment } from "./accountPrompt";
 
 const KEY_STOOL = "pawrent_tummy_stool_v1";
 const KEY_DIET  = "pawrent_tummy_diet_v1";
@@ -124,6 +125,8 @@ export const StoolLog = {
     arr.push(record);
     all[petId] = arr;
     await saveMap(KEY_STOOL, all);
+    // Logging a tummy entry is an account soft-prompt value moment.
+    signalValueMoment("tummy");
     return record;
   },
 
@@ -187,6 +190,8 @@ export const DietLog = {
     if (record.brand || record.productName) {
       await SavedFoods.touch(petId, record.brand, record.productName);
     }
+    // Logging a tummy entry is an account soft-prompt value moment.
+    signalValueMoment("tummy");
     return record;
   },
 

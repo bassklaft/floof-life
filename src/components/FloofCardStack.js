@@ -21,6 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
+  Image,
   ImageBackground,
   Animated,
   PanResponder,
@@ -73,8 +74,11 @@ function PetCardFace({ pet, width, height }) {
   return (
     <View style={[styles.cardFace, { width, height }]}>
       {heroUri ? (
+        // No `key={heroUri}` — letting RN's Image source-update path
+        // run instead of force-remounting keeps the previous frame on
+        // screen while the new URI loads, so consecutive swipes don't
+        // strobe a brief black/empty frame between cards.
         <ImageBackground
-          key={heroUri}
           source={{ uri: heroUri }}
           style={styles.cardImage}
           imageStyle={styles.cardImageInner}
@@ -219,7 +223,19 @@ export default function FloofCardStack({
         if (Math.abs(dx) > SWIPE_THRESHOLD) {
           const direction = dx > 0 ? -1 : 1; // drag right → previous pet
           const len = petsRef.current.length;
-          const newIdx = (indexRef.current + direction + len) % len;
+          const targetIdx = indexRef.current + direction;
+          // Wrap-around: only meaningful for len >= 3 where the wrap
+          // pet has a natural off-screen side (left vs. right) that
+          // matches the swipe direction. For len <= 2 the "other"
+          // pet only lives on one side (right of pet[0], left of
+          // pet[1]); a wrap commit would slide it off the screen in
+          // the same direction the user swiped, which feels broken.
+          // Snap back instead.
+          if (len <= 2 && (targetIdx < 0 || targetIdx >= len)) {
+            Animated.spring(dragX, { toValue: 0, friction: 7, useNativeDriver: true }).start();
+            return;
+          }
+          const newIdx = (targetIdx + len) % len;
           isCommittingRef.current = true;
           Animated.timing(dragX, {
             toValue: dx > 0 ? width : -width,
@@ -246,14 +262,46 @@ export default function FloofCardStack({
   ).current;
 
   const len = pets.length;
+
+  // Prefetch every pet's hero URI on mount / when the pet set changes
+  // so an offscreen card already has its image warmed in RN's image
+  // cache by the time a swipe brings it to center. Without this the
+  // first time a card scrolls into view there's a frame of black
+  // before the image paints. Cheap — RN.Image.prefetch is a no-op
+  // when the URI is already cached.
+  useEffect(() => {
+    for (const p of pets) {
+      const uri = pickPhotoForSlot(p, "hero");
+      if (uri) Image.prefetch(uri).catch(() => { /* swallow */ });
+    }
+  }, [pets]);
+
+  // Build the renderable card list with circular offsets. Each pet
+  // keeps a stable component instance (key={pet.id}) across renders,
+  // so committing a swipe just shifts the offsets — no card unmounts
+  // and remounts at the discontinuity. This is what makes the
+  // carousel feel smooth instead of strobing on every commit.
+  //
+  // The offset for pet i is normalized to the shortest circular path
+  // from `index` (range [-len/2, len/2)), then multiplied by width.
+  // Cards with |offset| > 1 are culled so we never paint more than
+  // ~3 at once even with a big multi-pet household. Per-pet keys mean
+  // a culled card remounts when it returns to the visible window —
+  // image cache (prefetched above) keeps that mount fast.
+  const visible = useMemo(() => {
+    if (len === 0) return [];
+    const out = [];
+    for (let i = 0; i < len; i++) {
+      let off = i - index;
+      if (off > len / 2) off -= len;
+      if (off < -len / 2) off += len;
+      if (Math.abs(off) > 1) continue;
+      out.push({ pet: pets[i], off });
+    }
+    return out;
+  }, [pets, index, len]);
+
   if (len === 0) return null;
-
-  const prevPet = pets[(index - 1 + len) % len];
-  const currentPet = pets[index];
-  const nextPet = pets[(index + 1) % len];
-
-  const prevX = Animated.add(dragX, -width);
-  const nextX = Animated.add(dragX, width);
 
   // Page-dot indicator at top: compact for small N, two-row wrap
   // beyond ~10. Active dot is wider + accent-colored.
@@ -263,17 +311,24 @@ export default function FloofCardStack({
 
   return (
     <View style={[styles.container, { width, height }]} {...panResponder.panHandlers}>
-      <Animated.View style={[styles.cardLayer, { transform: [{ translateX: prevX }] }]}>
-        <PetCardFace pet={prevPet} width={width} height={height} />
-      </Animated.View>
-      <Animated.View style={[styles.cardLayer, { transform: [{ translateX: dragX }] }]}>
-        <View style={styles.activeRing}>
-          <PetCardFace pet={currentPet} width={width} height={height} />
-        </View>
-      </Animated.View>
-      <Animated.View style={[styles.cardLayer, { transform: [{ translateX: nextX }] }]}>
-        <PetCardFace pet={nextPet} width={width} height={height} />
-      </Animated.View>
+      {visible.map(({ pet, off }) => {
+        const tx = off === 0 ? dragX : Animated.add(dragX, off * width);
+        const isActive = off === 0;
+        return (
+          <Animated.View
+            key={pet.id}
+            style={[styles.cardLayer, { transform: [{ translateX: tx }] }]}
+          >
+            {isActive ? (
+              <View style={styles.activeRing}>
+                <PetCardFace pet={pet} width={width} height={height} />
+              </View>
+            ) : (
+              <PetCardFace pet={pet} width={width} height={height} />
+            )}
+          </Animated.View>
+        );
+      })}
 
       {/* Page dots + tap hint */}
       <View pointerEvents="none" style={styles.topOverlay}>

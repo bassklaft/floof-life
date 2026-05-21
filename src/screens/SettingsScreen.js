@@ -6,6 +6,7 @@ import * as Application from "expo-application";
 import { Pet, Pets } from "../lib/storage";
 import { useActivePet } from "../lib/activePet";
 import { usePurchases } from "../lib/purchasesContext";
+import { useAuth } from "../lib/auth";
 import { getDeviceId } from "../lib/founderOverride";
 import { track, resetAnalytics } from "../lib/analytics";
 import { tapLight, tapHeavy } from "../lib/haptics";
@@ -23,6 +24,7 @@ export default function SettingsScreen({ navigation }) {
   const [petCount, setPetCount] = useState(0);
   const [deviceId, setDeviceId] = useState("");
   const { isPremium, isFounderDevice } = usePurchases();
+  const { user: authUser, configured: authConfigured } = useAuth();
 
   // Reactive active-pet — re-fetch when user switches floofs.
   const { petId: activePetId } = useActivePet();
@@ -132,6 +134,26 @@ export default function SettingsScreen({ navigation }) {
           </View>
         )}
       </TouchableOpacity>
+
+      {authConfigured && (
+        <>
+          <Text style={s.sectionHd}>ACCOUNT</Text>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => { tapLight(); navigation.navigate("Account"); }}
+          >
+            <MaterialCommunityIcons name="account-circle-outline" size={18} color={theme.muted} />
+            <Text style={s.rowLabel}>{authUser ? "Your account" : "Sign in or create account"}</Text>
+            <Text style={[s.sub, { textTransform: "none", maxWidth: 160 }]} numberOfLines={1} ellipsizeMode="middle">
+              {authUser?.email || "Back up your floofs"}
+            </Text>
+            <Text style={{ color: theme.muted }}>›</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      <Text style={s.sectionHd}>YOUR DATA</Text>
+      <Row label="Export Floof data" icon="share-variant" onPress={() => { tapLight(); navigation.navigate("ExportFloofData"); }} />
 
       <Text style={s.sectionHd}>FLOOFLIFE</Text>
       <Row label="Story · About this app" onPress={() => navigation.navigate("About")} />

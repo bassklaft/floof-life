@@ -11,6 +11,7 @@ import { Pet, Pets, ChecklistState } from "../lib/storage";
 import { useActivePet } from "../lib/activePet";
 import { pickPhotoForSlot } from "../lib/petPhotos";
 import { generateChecklist, effectiveStatus } from "../lib/checklist";
+import { MOOD_BY_ID, moodDateKey, moodSlotFor, MOOD_SLOT_LABELS } from "../data/moods";
 import { breedFacts } from "../data/breeds";
 import { getPrimaryBreed, mixedBreedLabel, isMixedBreed, shortBreedName } from "../lib/petBreeds";
 import { findType, statusFor, daysUntilDue } from "../lib/healthRecordTypes";
@@ -181,6 +182,7 @@ export default function HomeScreen({ navigation, onShowFloofFan }) {
   const [refreshing, setRefreshing] = useState(false);
   const [healthRecords, setHealthRecords] = useState([]);
   const [pawgressDay, setPawgressDay] = useState(null);
+  const [todayMoodLogs, setTodayMoodLogs] = useState([]);
   // Photo manager sheet — opened by tapping the single-pet hero banner.
   const [showPhotoManager, setShowPhotoManager] = useState(false);
   // Reactive active-pet id. Reloads the whole hub when it changes —
@@ -217,13 +219,16 @@ export default function HomeScreen({ navigation, onShowFloofFan }) {
     if (gen !== loadGenRef.current) return;
     setState(nextState);
     if (p?.id) {
-      const [nextHr, nextDay] = await Promise.all([
+      const [nextHr, nextDay, nextMoods] = await Promise.all([
         Pets.listHealthRecords(p.id),
         Pawgress.getDay(p.id, todayKey()),
+        Pets.listMoodLogs(p.id),
       ]);
       if (gen !== loadGenRef.current) return;
       setHealthRecords(nextHr);
       setPawgressDay(nextDay);
+      const today = moodDateKey();
+      setTodayMoodLogs(nextMoods.filter((m) => m.dateKey === today));
     }
   }, [activePetId]);
 
@@ -263,8 +268,24 @@ export default function HomeScreen({ navigation, onShowFloofFan }) {
     return overdueCount > 0 ? `${overdueCount} overdue · tap to review` : "Up to date — review your log";
   })();
 
+  // Mood prompt — surface a soft CTA when the current slot (morning
+  // before noon, evening after) has no log yet for the active pet.
+  // Today's slot already logged → still show the card, but with a
+  // "checked in" subtitle so the value is visible.
+  const currentMoodSlot = moodSlotFor();
+  const moodAlreadyLogged = todayMoodLogs.some((m) => m.slot === currentMoodSlot);
+  const lastMoodToday = todayMoodLogs.length > 0
+    ? todayMoodLogs.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0]
+    : null;
+  const lastMoodEmoji = lastMoodToday ? MOOD_BY_ID[lastMoodToday.moodId]?.emoji : null;
+  const moodSubtitle = moodAlreadyLogged
+    ? `${MOOD_SLOT_LABELS[currentMoodSlot]} checked in${lastMoodEmoji ? ` · ${lastMoodEmoji}` : ""} — tap to add tonight's reading or look back`
+    : `Take a beat — log how ${pet.name} is feeling this ${MOOD_SLOT_LABELS[currentMoodSlot].toLowerCase()}`;
+
   const cards = [
     { key: "pets",     title: "My Floofs",            subtitle: `${pet.name} · ${breedDisplay}`,    icon: "paw",            tint: theme.accent, onPress: () => navigation.navigate("Main", { screen: "YourPets" }) },
+    { key: "assistant",title: "Ask the Floof Assistant", subtitle: `Chat about ${pet.name} — mood, tummy, breed, training. Not a vet.`, icon: "chat-question-outline", tint: theme.accent, onPress: () => navigation.navigate("FloofAssistant", { petId: pet.id }) },
+    { key: "mood",     title: "Mood Tracker",         subtitle: moodSubtitle, icon: "emoticon-outline", tint: "#7A4F0A", onPress: () => navigation.navigate("MoodTracker", { petId: pet.id }) },
     { key: "diet",     title: "Diet & Care",          subtitle: "Supplements, fresh foods, grooming products",     icon: "food-apple",     tint: "#3F8E5C",    onPress: () => navigation.navigate("Diet") },
     { key: "tummy",    title: "Tummy Tracker",        subtitle: "Stool + diet log · FDA recall match · vet-share PDF", icon: "stomach", tint: "#7A4F0A", onPress: () => navigation.navigate("TummyTracker", { petId: pet.id }) },
     { key: "health",   title: "Health Tracker",       subtitle: healthSubtitle, icon: "clipboard-pulse-outline", tint: "#3F8E5C", onPress: () => navigation.navigate("HealthTracker", { petId: pet.id }), badge: overdueCount > 0 ? overdueCount : null },
@@ -427,6 +448,28 @@ export default function HomeScreen({ navigation, onShowFloofFan }) {
           </TouchableOpacity>
         )}
 
+        {/* Mood prompt — appears when today's slot (morning/night) has
+            no log yet. Soft, low-stakes ask — "take a beat" — that
+            reads as an invitation, not a task. Once logged for the
+            current slot, the prompt collapses (the Quick Access
+            Mood Tracker card remains for review / re-logging). */}
+        {!moodAlreadyLogged && (
+          <TouchableOpacity
+            onPress={() => { tapMedium(); navigation.navigate("MoodTracker", { petId: pet.id }); }}
+            style={s.moodPrompt}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Log ${pet.name}'s mood for this ${MOOD_SLOT_LABELS[currentMoodSlot].toLowerCase()}`}
+          >
+            <Text style={s.moodPromptEmoji}>{currentMoodSlot === "morning" ? "🌅" : "🌙"}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.moodPromptTitle}>How's {pet.name} this {MOOD_SLOT_LABELS[currentMoodSlot].toLowerCase()}?</Text>
+              <Text style={s.moodPromptBody}>Tap to read their mood — patterns over time help you (and your vet) catch things early.</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={theme.accent} />
+          </TouchableOpacity>
+        )}
+
         {/* Emergency below — still findable in 2 seconds via the bold
             red card + tabular position. The everyday Pawgress action
             takes the top slot. */}
@@ -528,6 +571,10 @@ const s = StyleSheet.create({
   // black, modest radius, slight downward offset.
   emergencyCard:    { flexDirection: "row", alignItems: "center", padding: 14, backgroundColor: "#C04A2C", borderRadius: 14, marginTop: 18, gap: 14, shadowColor: "#7A2A14", shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   pawgressCard:     { flexDirection: "row", alignItems: "center", padding: 14, backgroundColor: theme.card, borderRadius: 14, marginTop: 12, borderWidth: 1, borderColor: theme.line, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  moodPrompt:       { flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginTop: 12, borderRadius: 14, backgroundColor: theme.accentSoft, borderWidth: 1, borderColor: theme.accent + "55" },
+  moodPromptEmoji:  { fontSize: 28 },
+  moodPromptTitle:  { fontSize: 14, fontWeight: "800", color: theme.accent, letterSpacing: -0.2 },
+  moodPromptBody:   { fontSize: 12, color: theme.fg, marginTop: 3, lineHeight: 16 },
   pawgressTitle:    { fontSize: 14, fontWeight: "700", color: theme.fg },
   pawgressSubtitle: { fontSize: 12, color: theme.muted, marginTop: 3, lineHeight: 16 },
   emergencyIcon:    { width: 50, height: 50, borderRadius: 25, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },

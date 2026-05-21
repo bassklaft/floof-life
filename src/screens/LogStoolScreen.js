@@ -196,7 +196,7 @@ export default function LogStoolScreen() {
       <ModifierRow label="Undigested food" on={hasUndigestedFood} onPress={toggleModifier(setHasUndigestedFood)} />
 
       <Text style={s.label}>PHOTO (optional)</Text>
-      <Text style={s.help}>Photos help your vet identify color + consistency. Stays on your device.</Text>
+      <Text style={s.help}>Photos help your vet identify color + consistency. Kept private — never shared with anyone.</Text>
       <TouchableOpacity onPress={showPhotoMenu} style={s.photoBtn} activeOpacity={0.85}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={s.photoPreview} onError={() => {}} />

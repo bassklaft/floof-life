@@ -17,6 +17,7 @@ import { pickPhotoForSlot, MAX_PHOTOS_PER_PET } from "../lib/petPhotos";
 import { usePurchases } from "../lib/purchasesContext";
 import { getPetBreeds, getPrimaryBreed, mixedBreedLabel, isMixedBreed, shortBreedName } from "../lib/petBreeds";
 import { findType, statusFor, daysUntilDue } from "../lib/healthRecordTypes";
+import { CONDITION_BY_ID } from "../data/conditions";
 import { breedFacts, breedDisplayName, breedAdjective, breedEmoji } from "../data/breeds";
 import { LIFESTYLE_QUESTIONS, LIFESTYLE_DISPLAY } from "../data/lifestyleQuestions";
 import { track } from "../lib/analytics";
@@ -61,6 +62,41 @@ function HealthTrackerRow({ pet, navigation }) {
       </View>
       {overdue > 0 && (
         <View style={s.healthRowBadge}><Text style={s.healthRowBadgeText}>{overdue}</Text></View>
+      )}
+      <MaterialCommunityIcons name="chevron-right" size={20} color={theme.muted} />
+    </TouchableOpacity>
+  );
+}
+
+// Health Conditions row — entry point to per-pet condition guides
+// (FIV, FeLV, ...). Shows what's on file, or a soft invite to add a
+// diagnosis. Same row pattern as HealthTrackerRow.
+function ConditionsRow({ pet, navigation }) {
+  const [conditions, setConditions] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    Pets.listConditions(pet.id).then((r) => { if (mounted) setConditions(r); });
+    return () => { mounted = false; };
+  }, [pet.id]);
+  const subtitle = conditions.length === 0
+    ? "Tracking a diagnosis? Tap for care guidance"
+    : conditions
+        .map((c) => CONDITION_BY_ID[c.conditionId]?.shortLabel || CONDITION_BY_ID[c.conditionId]?.label)
+        .filter(Boolean)
+        .join(" · ") + " · tap for care guidance";
+  return (
+    <TouchableOpacity onPress={() => navigation.navigate("Conditions", { petId: pet.id })} style={s.healthRow} activeOpacity={0.7}>
+      <View style={[s.healthRowIcon, { backgroundColor: theme.accent + "1f" }]}>
+        <MaterialCommunityIcons name="heart-pulse" size={18} color={theme.accent} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.healthRowTitle}>Health Conditions</Text>
+        <Text style={s.healthRowSubtitle}>{subtitle}</Text>
+      </View>
+      {conditions.length > 0 && (
+        <View style={[s.healthRowBadge, { backgroundColor: theme.accent }]}>
+          <Text style={s.healthRowBadgeText}>{conditions.length}</Text>
+        </View>
       )}
       <MaterialCommunityIcons name="chevron-right" size={20} color={theme.muted} />
     </TouchableOpacity>
@@ -272,7 +308,7 @@ export default function YourPetsScreen() {
           <Text style={s.emptyCTAText}>Add your first floof</Text>
         </TouchableOpacity>
         <Text style={s.emptyDisclaimer}>
-          We don't share your pet's info with anyone. Your data stays on this device.
+          We don't share your pet's info with anyone. Your data stays on this device unless you choose to back it up to your account.
         </Text>
       </View>
     );
@@ -390,6 +426,7 @@ export default function YourPetsScreen() {
             {pet.mixOf && <Text style={s.mixMeta}>Mix of: {pet.mixOf}</Text>}
 
             <HealthTrackerRow pet={pet} navigation={navigation} />
+            <ConditionsRow pet={pet} navigation={navigation} />
 
             {/* Lifestyle card — collapsed by default. Shows answered
                 questions if pet.lifestyle has any entries; shows a
@@ -563,14 +600,19 @@ export default function YourPetsScreen() {
                   </View>
 
                   {/* Health Considerations card — default collapsed; serious,
-                      audit-quality medical content. Separate top-level card. */}
+                      audit-quality medical content. Only the header toggles
+                      the section; the expanded list is plain text (no per-
+                      item caret) so users don't think the bullets are
+                      tappable. (Build 46 fix: the entire card used to be a
+                      TouchableOpacity, which made the › bullets feel
+                      clickable + every tap collapsed the section.) */}
                   {Array.isArray(breed.health) && breed.health.length > 0 && (
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={() => toggleHealth(sectionId)}
-                      style={s.healthCard}
-                    >
-                      <View style={s.cardHeaderClean}>
+                    <View style={s.healthCard}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => toggleHealth(sectionId)}
+                        style={s.cardHeaderClean}
+                      >
                         <Text style={s.cardHeaderEmoji}>💛</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={s.cardHeaderTitle}>Health Considerations</Text>
@@ -583,7 +625,7 @@ export default function YourPetsScreen() {
                           size={22}
                           color={theme.muted}
                         />
-                      </View>
+                      </TouchableOpacity>
                       {healthExpanded && (
                         <View style={{ marginTop: 10 }}>
                           {breed.healthSummary ? (
@@ -594,8 +636,7 @@ export default function YourPetsScreen() {
                             </Text>
                           )}
                           {breed.health.map((h, i) => (
-                            <View key={i} style={s.healthRow}>
-                              <Text style={s.healthBullet}>›</Text>
+                            <View key={i} style={s.healthItem}>
                               <Text style={s.healthBody}>{h}</Text>
                             </View>
                           ))}
@@ -604,7 +645,7 @@ export default function YourPetsScreen() {
                           </Text>
                         </View>
                       )}
-                    </TouchableOpacity>
+                    </View>
                   )}
                 </React.Fragment>
               );
@@ -731,9 +772,14 @@ const s = StyleSheet.create({
   healthHeaderText:{ flex: 1, fontSize: 13, fontWeight: "700", color: theme.fg },
   healthHeaderHint:{ flexShrink: 0, fontSize: 11, color: theme.accent, fontWeight: "600" },
   healthIntro:     { fontSize: 12, color: theme.muted, lineHeight: 17, marginBottom: 8 },
-  healthRow:       { flexDirection: "row", marginBottom: 6 },
-  healthBullet:    { color: theme.accent, fontWeight: "800", marginRight: 8, fontSize: 14, lineHeight: 19 },
-  healthBody:      { flex: 1, fontSize: 12, color: theme.fg, lineHeight: 18 },
+  // Considerations items — flat text rows with no bullet, no padding,
+  // no border. Reads as paragraphs, NOT tappable rows. (Build 46 fix:
+  // the previous `s.healthRow` definition further down in this file
+  // collided with this one in object-literal order — the LAST
+  // definition won, so each item rendered with padding+border+bg and
+  // looked like a clickable card.)
+  healthItem:      { marginBottom: 10 },
+  healthBody:      { fontSize: 13, color: theme.fg, lineHeight: 19 },
   healthFooter:    { fontSize: 11, color: theme.muted, fontStyle: "italic", marginTop: 6, lineHeight: 16 },
   tipsCard:      { marginTop: 12, padding: 14, backgroundColor: theme.accentSoft, borderRadius: 12, borderWidth: 1, borderColor: theme.accent + "44" },
   tipsHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
