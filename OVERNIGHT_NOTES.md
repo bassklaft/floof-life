@@ -1,6 +1,40 @@
 # Overnight Run — 2026-05-07 → 2026-05-11 (v1.2.0 cycle, ongoing)
 
-This file is the running log for the v1.2.0 cycle. The **SESSION CHECKPOINT** section directly below captures where the 2026-05-10 session paused mid-pass — read it first when reopening. After that, the **CURRENT STATE** section is the up-to-date authoritative summary. The **v1.2.0 FINAL MANIFEST** further down is the pre-build-18 spec lock (historical record). The **Appendix** at the bottom holds older context.
+This file is the running log. **Read the v1.3 STATE section directly below first** — it's the current cycle. The v1.2.0 checkpoint + manifest below it are the prior cycle (historical).
+
+---
+
+# 🚀 v1.3 STATE — backend + accounts + privacy (2026-05-21)
+
+**Theme:** soft-prompt cloud accounts + cloud sync (backup) + privacy compliance, shipped to pass Apple review. Core app stays fully local; accounts are optional and benefit-led.
+
+## Backend — DEPLOYED to Supabase (project `gltwbqtdnxnvhrvmrdpk`)
+- DB schema live: 8 per-user tables (pets, health_records, mood_logs, stool_logs, diet_logs, checklist_state, app_prefs, observations) + churn_feedback. All RLS-on, policies scoped `auth.uid() = user_id`. Storage bucket `pet-media` private + 4 per-user-prefix policies.
+- Migrations applied: `20260518120000_churn_feedback`, `20260519120000_accounts_and_sync`, `20260521120000_storage_policies_fix` (the last repairs a partial-apply — see [[supabase-partial-migration-gotcha]]).
+- **Edge Functions NOT yet deployed** (code ready): `ai-floof-assistant`, `churn-feedback`, `account-delete`, `sync-upload-url`. All 4 IP-rate-limited at the edge. Pending: `supabase secrets set …` + `supabase functions deploy ×4`.
+- Apple SIWA client-secret JWT generated (`~/Documents/AppleKeys/apple-oauth-secret.txt`, expires 2026-11-17). Dashboard SIWA config still pending (paste secret + Services ID `com.bassklaft.pawrent.signin` + Team `93RYK7P234` + Key `6W8XSWHVBH`).
+
+## Client — built this session (uncommitted on `v1.2-work`)
+- **Auth:** `src/lib/supabase.js`, `src/lib/auth.js` (SIWA + email/password, Purchases.logIn aliasing on sign-in so payers keep Premium). `AccountScreen`, mounted in App.js; reachable via Settings → Account.
+- **Soft-prompt:** `src/lib/accountPrompt.js` + `src/components/AccountSoftPrompt.js`. Fires only AFTER a value moment (first Tummy entry / Pawgress ring complete / 2nd pet / 3rd session), never first launch. Min 7 days between, max 3 lifetime, stops on sign-in. Value moments wired into tummy.js, pawgress.js, storage.js; session counter in App.js.
+- **Migration engine:** `src/lib/cloudSync.js` — read-local → presigned-upload → keep-local. UPLOAD-ONLY (no restore path; restore is phase 2). Never writes/clears local. `CloudSyncStatusScreen` shows progress.
+- **Account deletion:** Settings → Account → Delete account (double-confirm, explains local kept) → `auth.deleteAccount` → `account-delete` function. Apple 5.1.1(v) ✓.
+
+## Privacy compliance
+- `legal/privacy-policy.{md,html}` finalized + staged (NOT pushed) — covers accounts/cloud/AI/analytics, region US.
+- `app.json` privacy manifest extended: Email, Name, UserID, Health, PhotosorVideos, OtherUserContent — all Linked, none Tracking. EAS regenerates `PrivacyInfo.xcprivacy` from this (CNG; ios/ gitignored).
+- In-app on-device claims corrected (ExportFloofData, YourPets empty state, LogStool helper).
+- ASC privacy-label checklist + reviewer notes drafted (see session deliverables).
+
+## ⚠️ Known gaps / decisions for Max
+- **No restore path** (reinstall → sign in → data back) — phase 2. iOS wipes local on uninstall, so until restore ships, a backup can't actually be recovered. Soft-prompt copy softened to "back up … multi-device sync rolling out soon" to avoid over-promising.
+- Cross-user JWT pen test written (`supabase/tests/cross_user_isolation_test.sql`) but needs `supabase test db` (Docker, not running here). Live anon-isolation pen test PASSED (anon gets `[]` + INSERT blocked 42501).
+- Privacy contact still `streetparkinfo@gmail.com` (leftover). Settings "Contact support" still `hello@stickaround.app`. Swap before/at GA.
+
+## Migration 10-case results (static analysis; ✓=code supports, device-verify where noted)
+1 fresh→account ✓ · 2 migrate+local-intact ✓ · 3 resume-no-dupes ✓ (idempotent upsert) · 4 airplane PARTIAL (usable + manual retry; no auto-retry) · 5 payer-no-paywall ✓ (aliasing; sandbox-verify) · 6 reinstall-restore ✗ NOT BUILT (phase 2) · 7 sign-out-local-intact ✓ · 8 delete ✓ (live-verify) · 9 multi-pet ✓ (active-pet id not in cloud snapshot — app_prefs is `{}`) · 10 decline ✓.
+
+## STOP: no EAS build triggered, nothing pushed to origin or bassklaft.github.io.
 
 ---
 

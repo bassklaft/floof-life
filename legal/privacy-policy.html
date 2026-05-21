@@ -22,48 +22,90 @@
 <div class="nav"><a href="index.html">← FloofLife legal</a></div>
 
 <h1>FloofLife — Privacy Policy</h1>
-<p class="meta"><strong>Last updated: May 6, 2026</strong></p>
+<p class="meta"><strong>Last updated: May 21, 2026</strong></p>
 
 <p>FloofLife ("the App") is operated by Maxwell Klafter ("we," "us," or "our"), based in Brooklyn, New York, USA.</p>
 
 <p>This Privacy Policy explains how the App handles your information.</p>
 
 <h2>Summary</h2>
-<p><strong>FloofLife stores all your data locally on your device. We do not collect, transmit, or store any personal information on our servers. We do not have servers that hold your data.</strong></p>
+<p>FloofLife is local-first: by default, everything you log about your pet stays on your device, and the App does not require an account to use. A small number of features send limited data off your device — anonymous product analytics, purchase processing, feedback you choose to submit, the optional AI Floof Assistant, and an <strong>optional cloud backup of your pet data</strong> that you turn on by creating an account. Each is described below.</p>
 
-<h2>What information the App handles</h2>
+<h2>Information stored on your device by default</h2>
 <p>When you use FloofLife, you may provide:</p>
 <ul>
-  <li>Your pet's name, species, breed, age, weight, and photo</li>
-  <li>Notes and observations you log about your pet</li>
+  <li>Your pet's name, species, breed, age, weight, and photos</li>
+  <li>Notes, observations, mood, tummy, and health-record entries you log</li>
   <li>Your interactions with checklists and other features</li>
 </ul>
-<p>All of this information is stored exclusively on your device using your phone's local storage (SQLite and AsyncStorage). It is not transmitted to us or any third party.</p>
+<p>By default, all of this is stored only on your device. It is not transmitted to us or to any third party. <strong>If you choose to create an account and turn on cloud backup (see below), copies of this data are uploaded to your account — and the copy on your device is always kept.</strong></p>
 
-<h2>What we do NOT do</h2>
+<h2>Optional account &amp; cloud backup</h2>
+<p>Starting in this version, you can create a free FloofLife account to back up your pet data to the cloud. The account is <strong>optional</strong> — the App continues to work fully offline without one, and existing features keep working with no account.</p>
+<p>If you create an account, you can sign in with:</p>
 <ul>
-  <li>We do not collect your name, email, phone number, or contact information</li>
-  <li>We do not collect your location and store it. The App may request location permission to display nearby emergency veterinarians and current weather conditions, but this information is used in real time and is not retained or transmitted.</li>
-  <li>We do not use analytics services that track your behavior</li>
-  <li>We do not use third-party advertising networks</li>
-  <li>We do not sell, rent, or share any data</li>
-  <li>We do not have user accounts because we do not store data centrally</li>
+  <li><strong>Sign in with Apple</strong> — handled by Apple through their standard system flow. We receive an opaque identifier (and, if you choose to share it, your email and name) from Apple. We never receive your Apple ID password.</li>
+  <li><strong>Email + password</strong> — managed by our authentication provider (Supabase). Your password is hashed and stored by Supabase; we never see it.</li>
 </ul>
+<p>When you tap <strong>Back up my floofs</strong>, the following is uploaded to your account:</p>
+<ul>
+  <li>Your pet profiles (name, species, breed, age, weight, photos)</li>
+  <li>Health records and any attachments you've added</li>
+  <li>Mood logs, stool logs, and diet logs</li>
+  <li>Checklist completion state and app preferences scoped to your account</li>
+</ul>
+<p>Uploads are encrypted in transit (HTTPS) and stored under your account so that only you, when signed in, can read them. Other FloofLife users cannot access your data. We do not access individual users' pet data except where strictly necessary to operate, secure, or repair the service. <strong>Your copy on your device is kept before, during, and after backup — backing up never removes anything from your phone.</strong></p>
+
+<h2>Where data is stored when you opt in</h2>
+<p>Data you choose to send off your device is stored using Supabase (a hosted database, authentication, and serverless-function platform) on infrastructure located in the United States. To protect these services from abuse, requests are rate-limited using Upstash; this briefly processes your device's IP address for that purpose and does not store the content of what you send.</p>
+<p>This applies to feedback you submit, the AI Floof Assistant, and any pet data you choose to back up.</p>
+
+<h2>Feedback you choose to send</h2>
+<p>The App asks for feedback at a few moments:</p>
+<ul>
+  <li>From the "Send Feedback" button in Settings, at any time.</li>
+  <li>After you cancel a free trial or subscription, or after you've opened the App a couple of times without subscribing, the App may show a short, optional feedback form.</li>
+</ul>
+<p>These forms are always optional — you can dismiss them. If you choose to submit one, the information you enter is sent to our backend and stored so we can read and act on it. Depending on the form, that may include:</p>
+<ul>
+  <li>The reasons you select and any message you type</li>
+  <li>Optional contact details you choose to provide: your name, email address, and phone number</li>
+  <li>Optional details you choose to provide: an age range, and how you found the App</li>
+  <li>The App version and your device's operating system version</li>
+  <li>An anonymous RevenueCat identifier (see "Purchases" below), so we can connect your feedback to your anonymous purchase record</li>
+</ul>
+<p>You decide what to put in these fields; leaving any of them blank is fine. We read this feedback manually, use it to improve the App, and do not sell it or use it for advertising.</p>
+<p>If you provide a name, email, or phone number in a feedback form, we also store these with our purchase processor, RevenueCat, as attributes of your anonymous customer record, so we can recognize you if you contact us.</p>
+
+<h2>AI Floof Assistant</h2>
+<p>If you use the Floof Assistant chat, the messages you send are transmitted to Anthropic's Claude API through our own server (so your device never holds an AI provider key). Your messages are processed only to generate a response and are not used to train Anthropic's models. We do not retain chat content on our servers beyond what your device stores locally for your own chat history.</p>
+
+<h2>Purchases</h2>
+<p>In-app purchases and subscriptions are processed by Apple and managed through RevenueCat. RevenueCat identifies your device with an anonymous identifier — not your name or email — unless you provide contact details through a feedback form or create a FloofLife account. If you create an account, RevenueCat associates your existing anonymous purchase record with your account so your subscription carries over. We never receive your full payment-card details.</p>
+
+<h2>Analytics</h2>
+<p>The App uses PostHog for anonymous product analytics — for example, which screens are opened and which features are used. Analytics events are tied to a random per-installation identifier, never to your name, email, or any information about your pet. We do not use third-party advertising networks, and we do not sell data. We do not track you across other companies' apps or websites.</p>
+
+<h2>Recall data</h2>
+<p>The App checks pet-food recall information against the U.S. FDA's public openFDA service. These lookups are public queries and do not include your personal information.</p>
+
+<h2>Location</h2>
+<p>The App may request location permission to display nearby emergency veterinarians and current weather conditions. This information is used in real time and is not retained or transmitted to us.</p>
 
 <h2>Photos and camera</h2>
-<p>The App may request access to your photo library or camera so you can add a photo of your pet to their profile. Photos remain on your device and are never uploaded.</p>
+<p>The App may request access to your photo library or camera so you can add photos of your pet. By default, photos remain on your device. If you opt in to cloud backup by creating an account and tapping <strong>Back up my floofs</strong>, copies of your photos are uploaded to your account; the copy on your device is kept.</p>
 
-<h2>Feedback emails</h2>
-<p>The App includes a "Send Feedback" button in Settings. Tapping it opens your device's default mail app with a message pre-addressed to <a href="mailto:streetparkinfo@gmail.com">streetparkinfo@gmail.com</a>. The App pre-fills a short template that includes the App version, your operating system version, and the number of pets you have in the App. <strong>It does NOT include your pet's name, photo, breed, age, weight, notes, location, or any other personal data.</strong></p>
-<p>You always see and can edit the entire email before sending. We read incoming feedback emails manually using a standard email client. We do not run automated processing on them and we do not share them with third parties. If you do not want us to receive any of the diagnostic context, edit it out before sending or contact us another way.</p>
+<h2>Data retention and deletion</h2>
+<p><strong>Feedback submissions</strong> are kept only as long as they are useful for improving the App. To request a copy or deletion, contact us at the email below.</p>
+<p><strong>Account data</strong> (pet profiles, photos, and logs you backed up): you can delete your entire cloud copy from inside the App — go to <strong>Settings → Account → Delete account</strong>. This permanently removes your account and all backed-up data and photos from our systems. The copy on your device is intentionally kept so you can keep using the App offline; you can remove that separately with "Reset all data" in Settings.</p>
 
 <h2>Children</h2>
-<p>FloofLife is not directed to children under 13 and we do not knowingly collect information from children.</p>
+<p>FloofLife is not directed to children under 13 and we do not knowingly collect information from children. The optional demographic questions in feedback forms are intended for adults.</p>
 
 <h2>Changes to this policy</h2>
 <p>If we change how the App handles data in future versions, we will update this policy and disclose changes prominently within the App.</p>
 
 <h2>Contact</h2>
-<p>For privacy questions, contact: <a href="mailto:streetparkinfo@gmail.com">streetparkinfo@gmail.com</a></p>
+<p>For privacy questions, or to request access to or deletion of your data, contact: <a href="mailto:streetparkinfo@gmail.com">streetparkinfo@gmail.com</a></p>
 </body>
 </html>
