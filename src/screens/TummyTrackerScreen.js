@@ -330,6 +330,19 @@ export default function TummyTrackerScreen() {
         })
       )}
 
+      {/* Diet & Care guide — folded into Tummy in v1.3 (was its own
+          Home card). Reference content lives in DietScreen. */}
+      <TouchableOpacity onPress={() => { tapLight(); navigation.navigate("Diet"); }} style={s.dietCareCard} activeOpacity={0.8}>
+        <View style={s.dietCareIcon}>
+          <MaterialCommunityIcons name="food-apple" size={20} color={theme.green} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.dietCareTitle}>Diet & Care guide</Text>
+          <Text style={s.dietCareSub}>Supplements, fresh foods & grooming products</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={theme.muted} />
+      </TouchableOpacity>
+
       <View style={s.disclaimer}>
         <Text style={s.disclaimerText}>
           Tummy Tracker doesn't diagnose. It helps you and your vet see patterns. Always consult your vet for health concerns.
@@ -460,6 +473,10 @@ const s = StyleSheet.create({
   rowMeta:         { fontSize: 10, color: theme.muted, marginTop: 4 },
   rowPhoto:        { width: 48, height: 48, borderRadius: 8, marginLeft: 8 },
   dietIconCircle:  { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: theme.green + "1f" },
+  dietCareCard:    { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginTop: 18, borderRadius: 12, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.line },
+  dietCareIcon:    { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: theme.green + "1f" },
+  dietCareTitle:   { fontSize: 15, fontWeight: "700", color: theme.fg },
+  dietCareSub:     { fontSize: 12, color: theme.muted, marginTop: 2 },
   disclaimer:      { marginTop: 16, padding: 12, borderRadius: 10, backgroundColor: theme.accentSoft },
   disclaimerText:  { fontSize: 11, color: theme.fg, textAlign: "center", lineHeight: 16, fontStyle: "italic" },
 });

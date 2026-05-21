@@ -44,7 +44,13 @@ const STEPS = [
     targetTab: 1,
     eyebrow: "🏠  HOME",
     title: "Every tool you need, one tap each",
-    body: "Emergency, Toxic Foods + Plants, Vets Near Me, Tummy Tracker, Health Tracker, Diet & Care, Recalls, Trip Planning — all here.",
+    body: "Floof Trackers (Health, Tummy & Mood), Training, Risk Map, Trip Planner, Vets Near Me, Recalls, Age Calculator — plus Emergency and Toxic Foods. All here.",
+  },
+  {
+    targetTab: null,
+    eyebrow: "💬  FLOOF ASSISTANT",
+    title: "A pet-smart chat, always one tap away",
+    body: "See the chat button floating on the right edge of every screen? Tap it anytime to ask about your floof — mood, tummy, breed, training. It remembers your conversation and knows what you've logged. (It's a knowledgeable companion, not a vet.)",
   },
   {
     targetTab: 2,
